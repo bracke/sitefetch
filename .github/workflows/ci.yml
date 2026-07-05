@@ -1,0 +1,64 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  linux-release-check:
+    name: Linux release checklist
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out sitefetch
+        uses: actions/checkout@v4
+        with:
+          path: sitefetch
+      - name: Check out sitefetchlib sibling
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/sitefetchlib
+          path: sitefetchlib
+      - name: Check out HttpClient sibling
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/HttpClient
+          path: HttpClient
+      - name: Check out regexp sibling
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/regexp
+          path: regexp
+      - name: Check out zlib sibling
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/zlib
+          path: zlib
+      - name: Check out i18n sibling
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/i18n
+          path: i18n
+      - name: Check out terminal_styles sibling
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/terminal_styles
+          path: terminal_styles
+      - name: Check out project_tools sibling
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/project_tools
+          path: project_tools
+      - name: Set up Alire
+        uses: alire-project/setup-alire@v5
+      - name: Install Ada toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gnat gprbuild gnatprove gnatdoc libssl-dev python3 || sudo apt-get install -y gnat gprbuild gnatdoc libssl-dev python3
+          sudo apt-get install -y libaunit-dev || sudo apt-get install -y libaunit22-dev || sudo apt-get install -y libaunit24-dev
+      - name: Build sitefetch release checker
+        working-directory: sitefetch
+        run: alr build
+      - name: Run sitefetch release checker
+        working-directory: sitefetch
+        run: ./bin/check_sitefetch

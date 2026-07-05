@@ -1,0 +1,39 @@
+name = "tests"
+description = "CLI and production-fixture test suite for sitefetch"
+version = "0.1.0-dev"
+
+authors = ["Bent Bracke"]
+maintainers = ["Bent Bracke <bent@bracke.dk>"]
+maintainers-logins = ["bracke"]
+licenses = "MIT OR Apache-2.0 WITH LLVM-exception"
+long-description = "AUnit tests for the sitefetch CLI crate, covering command-line parsing, application runtime, localized output, terminal formatting, message catalogs, and production HTTP fixture wiring."
+
+# Fill this with the canonical project URL when one exists.
+website = ""
+tags = ["test", "suite", "cli", "aunit"]
+
+executables = ["tests"]
+
+[[depends-on]]
+gnat_native = "=15.2.1"
+
+[[depends-on]]
+sitefetch = "*"
+
+[[pins]]
+sitefetch = { path = ".." }
+
+[[depends-on]]
+terminal_styles = "*"
+
+[[pins]]
+terminal_styles = { path = "../../terminal_styles" }
+
+[[depends-on]]
+project_tools = "*"
+
+[[pins]]
+project_tools = { path = "../../project_tools" }
+
+[[depends-on]]
+aunit = "^26.0.0"

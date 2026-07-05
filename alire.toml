@@ -1,0 +1,42 @@
+name = "sitefetch"
+description = "Command-line website mirroring tool built on sitefetchlib"
+version = "0.1.0"
+
+authors = ["Bent Bracke"]
+maintainers = ["Bent Bracke <bent@bracke.dk>"]
+maintainers-logins = ["bracke"]
+licenses = "MIT OR Apache-2.0 WITH LLVM-exception"
+long-description = "sitefetch is the CLI crate for mirroring a website to a local directory. It handles command-line parsing, localized terminal output, summaries, and delegates crawling to the reusable sitefetchlib library crate."
+
+# Fill this with the canonical project URL when one exists.
+website = ""
+tags = ["website", "mirror", "crawler", "http", "cli"]
+
+executables = ["sitefetch"]
+
+[[depends-on]]
+gnat_native = "=15.2.1"
+
+[[depends-on]]
+sitefetchlib = "*"
+
+[[depends-on]]
+i18n = "*"
+
+[[depends-on]]
+terminal_styles = "*"
+
+[[depends-on]]
+project_tools = "*"
+
+[[pins]]
+sitefetchlib = { path = "../sitefetchlib" }
+
+[[pins]]
+i18n = { path = "../i18n" }
+
+[[pins]]
+terminal_styles = { path = "../terminal_styles" }
+
+[[pins]]
+project_tools = { path = "../project_tools" }

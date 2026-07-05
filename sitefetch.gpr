@@ -1,0 +1,35 @@
+with "../sitefetchlib/sitefetchlib.gpr";
+with "../i18n/i18n.gpr";
+with "../terminal_styles/terminal_styles.gpr";
+with "../project_tools/project_tools.gpr";
+
+project Sitefetch is
+
+   for Source_Dirs use ("src/");
+   for Object_Dir use "obj";
+   for Create_Missing_Dirs use "True";
+   for Exec_Dir use "bin";
+   for Main use ("start.adb", "check_sitefetch.adb");
+
+   package Compiler is
+      for Default_Switches ("Ada") use ("-gnat2022", "-gnatyM120", "-gnatX", "-gnatwU");
+   end Compiler;
+
+   package Binder is
+      for Switches ("Ada") use ("-Es");
+   end Binder;
+
+   package Builder is
+      for Executable ("start.adb") use "sitefetch";
+      for Executable ("check_sitefetch.adb") use "check_sitefetch";
+   end Builder;
+
+   package Linker is
+      for Default_Switches ("Ada") use ("-lssl", "-lcrypto");
+   end Linker;
+
+   package Install is
+      for Artifacts (".") use ("share");
+   end Install;
+
+end Sitefetch;
