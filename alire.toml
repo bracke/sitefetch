@@ -9,7 +9,7 @@ licenses = "MIT OR Apache-2.0 WITH LLVM-exception"
 long-description = "sitefetch is the CLI crate for mirroring a website to a local directory. It handles command-line parsing, localized terminal output, summaries, and delegates crawling to the reusable sitefetchlib library crate."
 
 # Fill this with the canonical project URL when one exists.
-website = ""
+website = "https://github.com/bracke/sitefetch"
 tags = ["website", "mirror", "crawler", "http", "cli"]
 
 executables = ["sitefetch"]
