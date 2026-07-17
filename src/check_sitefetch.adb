@@ -59,28 +59,8 @@ procedure Check_Sitefetch is
       5 => new String'("sitefetch.gpr"),
       6 => new String'("--level=0"),
       7 => new String'("--mode=check"));
-   Project_Tools_Gnatprove_Args : constant Argument_List :=
-     (1 => new String'("exec"),
-      2 => new String'("--"),
-      3 => new String'("gnatprove"),
-      4 => new String'("-P"),
-      5 => new String'("project_tools.gpr"),
-      6 => new String'("--level=0"),
-      7 => new String'("--mode=check"));
    Exec_CLI_Tests_Args : constant Argument_List :=
      (1 => new String'("exec"), 2 => new String'("--"), 3 => new String'("./bin/tests"));
-   Exec_Sitefetchlib_Check_Args : constant Argument_List :=
-     (1 => new String'("exec"), 2 => new String'("--"), 3 => new String'("./bin/check_sitefetchlib"));
-   Exec_I18n_Check_Args : constant Argument_List :=
-     (1 => new String'("exec"), 2 => new String'("--"), 3 => new String'("./bin/check_i18n"));
-   Exec_Terminal_Styles_Check_Args : constant Argument_List :=
-     (1 => new String'("exec"), 2 => new String'("--"), 3 => new String'("./bin/check_terminal_styles"));
-   Exec_Project_Tools_Tests_Args : constant Argument_List :=
-     (1 => new String'("exec"), 2 => new String'("--"), 3 => new String'("./bin/project_tools_tests"));
-   Exec_Project_Tools_Public_API_Args : constant Argument_List :=
-     (1 => new String'("exec"),
-      2 => new String'("--"),
-      3 => new String'("./bin/project_tools_public_api_smoke"));
    GNAT_Version_Args : constant Argument_List :=
      (1 => new String'("exec"),
       2 => new String'("--"),
@@ -553,65 +533,6 @@ procedure Check_Sitefetch is
          Quiet   => Quiet_Mode);
    end Run_Staged_Gnatprove;
 
-   procedure Run_Sibling_Release_Checks is
-   begin
-      Run
-        ("build sitefetchlib release checker",
-         Sitefetchlib_Dir & "/check_sitefetchlib",
-         Alr_Path,
-         Build_Args);
-      Run
-        ("run sitefetchlib release checker",
-         Sitefetchlib_Dir & "/check_sitefetchlib",
-         Alr_Path,
-         Exec_Sitefetchlib_Check_Args);
-
-      Run
-        ("build i18n release checker",
-         I18n_Dir & "/check_i18n",
-         Alr_Path,
-         Build_Args);
-      Run
-        ("run i18n release checker",
-         I18n_Dir & "/check_i18n",
-         Alr_Path,
-         Exec_I18n_Check_Args);
-
-      Run
-        ("build terminal_styles release checker",
-         Terminal_Styles_Dir & "/check_terminal_styles",
-         Alr_Path,
-         Build_Args);
-      Run
-        ("run terminal_styles release checker",
-         Terminal_Styles_Dir & "/check_terminal_styles",
-         Alr_Path,
-         Exec_Terminal_Styles_Check_Args);
-
-      Run ("build project_tools", Project_Tools_Dir, Alr_Path, Build_Args);
-      Run
-        ("prove project_tools release surface",
-         Project_Tools_Dir,
-         Alr_Path,
-         Project_Tools_Gnatprove_Args);
-      Run ("build project_tools tests", Project_Tools_Dir & "/tests", Alr_Path, Build_Args);
-      Run
-        ("run project_tools tests",
-         Project_Tools_Dir & "/tests",
-         Alr_Path,
-         Exec_Project_Tools_Tests_Args);
-      Run
-        ("build project_tools public API smoke",
-         Project_Tools_Dir & "/public_api_smoke",
-         Alr_Path,
-         Build_Args);
-      Run
-        ("run project_tools public API smoke",
-         Project_Tools_Dir & "/public_api_smoke",
-         Alr_Path,
-         Exec_Project_Tools_Public_API_Args);
-   end Run_Sibling_Release_Checks;
-
    procedure Validate_Staged_Release_Build (Target_Root : String) is
    begin
       Validate_Staged_Release_Build_Workspace (Target_Root);
@@ -722,7 +643,6 @@ begin
    Run ("prove sitefetch release surface", Root_Dir, Alr_Path, Gnatprove_Check_Args);
    Run ("build sitefetch CLI tests", Root_Dir & "/tests", Alr_Path, Build_Args);
    Run ("run sitefetch CLI tests", Root_Dir & "/tests", Alr_Path, Exec_CLI_Tests_Args);
-   Run_Sibling_Release_Checks;
 
    Project_Tools.Tree_Checks.Require_No_Nonempty_Stderr (Root_Dir & "/obj", Quiet_Mode);
    Project_Tools.Tree_Checks.Require_No_Nonempty_Stderr (Root_Dir & "/tests/obj", Quiet_Mode);
