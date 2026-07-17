@@ -134,8 +134,11 @@ procedure Check_Sitefetch is
 
       Manifest_Checks.Require_Pin_Free_Crate_Manifest
         (Project_Tools_Dir & "/alire.toml", "project_tools", Quiet_Mode);
-      Manifest_Checks.Require_Pin_Free_Crate_Manifest
-        (Zlib_Dir & "/alire.toml", "zlib", Quiet_Mode);
+      --  zlib is a dependency crate that legitimately pins its own sibling
+      --  (cryptolib) in the development manifest, exactly as sitefetchlib and
+      --  httpclient pin theirs above. Accept that documented pin instead of
+      --  demanding a pin-free development manifest.
+      Manifest_Checks.Require_Workspace_Pin (Zlib_Dir & "/alire.toml", "cryptolib", "../cryptolib", Quiet_Mode);
    end Audit_Development_Workspace_Pins;
 
    procedure Audit_Release_Templates is
