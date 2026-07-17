@@ -2690,7 +2690,7 @@ package body Sitefetch.Tests is
    begin
       Ada.Directories.Create_Path (Root & "/sitefetch/src");
       Ada.Directories.Create_Path (Root & "/sitefetchlib/src");
-      Ada.Directories.Create_Path (Root & "/HttpClient/src");
+      Ada.Directories.Create_Path (Root & "/httpclient/src");
 
       Write_Test_File (Root & "/sitefetch/sitefetch.gpr", "project Sitefetch is end Sitefetch;" & ASCII.LF);
       Write_Test_File (Root & "/sitefetch/README.md", "sitefetch" & ASCII.LF);
@@ -2702,9 +2702,9 @@ package body Sitefetch.Tests is
       Write_Test_File (Root & "/sitefetchlib/README.md", "sitefetchlib" & ASCII.LF);
       Write_Test_File (Root & "/sitefetchlib/LICENSE", "license" & ASCII.LF);
 
-      Write_Test_File (Root & "/HttpClient/httpclient.gpr", "project Httpclient is end Httpclient;" & ASCII.LF);
-      Write_Test_File (Root & "/HttpClient/README.md", "httpclient" & ASCII.LF);
-      Write_Test_File (Root & "/HttpClient/LICENSE", "license" & ASCII.LF);
+      Write_Test_File (Root & "/httpclient/httpclient.gpr", "project Httpclient is end Httpclient;" & ASCII.LF);
+      Write_Test_File (Root & "/httpclient/README.md", "httpclient" & ASCII.LF);
+      Write_Test_File (Root & "/httpclient/LICENSE", "license" & ASCII.LF);
    end Stage_Source_Skeleton;
 
    procedure Assert_Path_Exists (Path : String; Message : String) is
@@ -2737,13 +2737,13 @@ package body Sitefetch.Tests is
 
    Release_Build_Crates : constant Release_Crate_List :=
      [To_Unbounded_String ("sitefetch"), To_Unbounded_String ("sitefetchlib"),
-      To_Unbounded_String ("HttpClient"), To_Unbounded_String ("zlib"),
+      To_Unbounded_String ("httpclient"), To_Unbounded_String ("zlib"),
       To_Unbounded_String ("regexp"), To_Unbounded_String ("i18n"),
       To_Unbounded_String ("terminal_styles"), To_Unbounded_String ("project_tools")];
 
    Release_Build_Overlay_Crates : constant Release_Crate_List :=
      [To_Unbounded_String ("sitefetch"), To_Unbounded_String ("sitefetchlib"),
-      To_Unbounded_String ("HttpClient")];
+      To_Unbounded_String ("httpclient")];
 
    overriding procedure Run_Test (Item : in out Release_Manifest_Tool_Test) is
       pragma Unreferenced (Item);
@@ -2834,8 +2834,8 @@ package body Sitefetch.Tests is
          "sitefetch build overlay should pin project_tools");
       Assert_File_Contains
         (Root & "/sitefetchlib/alire.build.toml",
-         "httpclient = { path = ""../HttpClient"" }",
-         "sitefetchlib build overlay should pin HttpClient");
+         "httpclient = { path = ""../httpclient"" }",
+         "sitefetchlib build overlay should pin httpclient");
       Assert_File_Contains
         (Root & "/sitefetchlib/alire.build.toml",
          "regexp = { path = ""../regexp"" }",
@@ -2845,9 +2845,9 @@ package body Sitefetch.Tests is
          "zlib = { path = ""../zlib"" }",
          "sitefetchlib build overlay should pin zlib");
       Assert_File_Contains
-        (Root & "/HttpClient/alire.build.toml",
+        (Root & "/httpclient/alire.build.toml",
          "zlib = { path = ""../zlib"" }",
-         "HttpClient build overlay should pin zlib");
+         "httpclient build overlay should pin zlib");
 
       Write_Test_File
         (Root & "/sitefetch/alire.build.toml",

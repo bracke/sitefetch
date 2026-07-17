@@ -96,13 +96,13 @@ Options:
 - `--cache-no-verify-local`: trust local cached files without checking persisted size/hash metadata.
 - `--user-agent UA`, `--user-agent=UA`: set the production HTTP `User-Agent` header. Default is `sitefetch/0.1`.
 - `--accept-language VALUE`, `--accept-language=VALUE`: set the production HTTP `Accept-Language` header.
-- `--accept-encoding VALUE`, `--accept-encoding=VALUE`: set the production HTTP `Accept-Encoding` header. Default is `gzip, deflate`. HTTP `Content-Encoding` decompression is performed by HttpClient; sitefetchlib uses this value for request policy and cache `Vary: Accept-Encoding` checks.
+- `--accept-encoding VALUE`, `--accept-encoding=VALUE`: set the production HTTP `Accept-Encoding` header. Default is `gzip, deflate`. HTTP `Content-Encoding` decompression is performed by httpclient; sitefetchlib uses this value for request policy and cache `Vary: Accept-Encoding` checks.
 - `--workers N`, `--workers=N`: run N simultaneous download workers. Default is `8`; maximum is `64`.
 - `--skip-dangerous`: skip direct-download URLs with executable, script, macro-document,
   archive, disk-image, or similar risky extensions.
 - `--safe`, `--assets-only-safe`: skip dangerous files and direct-download only common passive
   image, audio, video, and font assets.
-- `--durable-writes`: use stricter local write durability. sitefetch asks HttpClient to fsync
+- `--durable-writes`: use stricter local write durability. sitefetch asks httpclient to fsync
   completed files and best-effort fsync parent directories after atomic renames where supported.
 
 ## Library API
@@ -149,7 +149,7 @@ separate per-host concurrency limiter for multi-host subdomain crawls.
 
 ## Compression Boundary
 
-HTTP `Content-Encoding` decompression is handled by HttpClient. sitefetch configures the production
+HTTP `Content-Encoding` decompression is handled by httpclient. sitefetch configures the production
 `Accept-Encoding` request header through sitefetchlib, and sitefetchlib records that request value in
 cache sidecars for `Vary: Accept-Encoding` reuse checks. sitefetchlib also inflates gzip sitemap
 resources such as `sitemap.xml.gz` so their links can be crawled; that is separate from HTTP
@@ -381,7 +381,7 @@ To prepare pin-free publish manifests in a staging directory without modifying t
 ./bin/check_sitefetch --quiet --validate-release-source /tmp/sitefetch-release
 ```
 
-The manifest preparation command writes `sitefetch/alire.toml`, `sitefetchlib/alire.toml`, and `HttpClient/alire.toml` under the target directory from the checked release templates. The source preparation command copies the staged source tree for those crates, skips generated/local state directories such as `alire/`, `config/`, `bin/`, `obj/`, and `lib/`, overlays the pin-free release manifests, and runs source validation. The build preparation command also stages local build-only dependency crates (`zlib`, `regexp`, `i18n`, `terminal_styles`, and `project_tools`) and writes `alire.build.toml` overlays with local pins. Published `alire.toml` files remain pin-free; build validation temporarily activates the build overlays and restores the pin-free manifests afterwards. The manifest validation command checks an existing staged directory for that layout, rejects local pins, and verifies the expected release dependencies. The source validation command additionally requires each staged crate to include its expected `.gpr` file, `src/`, `README.md`, and `LICENSE`. The build workspace validation command verifies the staged dependency crates and build-only overlays without running Alire builds. The build validation command runs `alr build` in the staged `HttpClient`, `sitefetchlib`, and `sitefetch` crates after structural validation, then runs `alr exec -- gnatprove -P sitefetch.gpr --level=0 --mode=check` in the staged `sitefetch` crate. The default `./bin/check_sitefetch` release readiness path also runs the local GNATprove check, CLI tests, sibling release checkers for `sitefetchlib`, `i18n`, and `terminal_styles`, and the `project_tools` build, GNATprove, test, and public API smoke checks. Add `--quiet` before a release validation subcommand when only the exit status matters.
+The manifest preparation command writes `sitefetch/alire.toml`, `sitefetchlib/alire.toml`, and `httpclient/alire.toml` under the target directory from the checked release templates. The source preparation command copies the staged source tree for those crates, skips generated/local state directories such as `alire/`, `config/`, `bin/`, `obj/`, and `lib/`, overlays the pin-free release manifests, and runs source validation. The build preparation command also stages local build-only dependency crates (`zlib`, `regexp`, `i18n`, `terminal_styles`, and `project_tools`) and writes `alire.build.toml` overlays with local pins. Published `alire.toml` files remain pin-free; build validation temporarily activates the build overlays and restores the pin-free manifests afterwards. The manifest validation command checks an existing staged directory for that layout, rejects local pins, and verifies the expected release dependencies. The source validation command additionally requires each staged crate to include its expected `.gpr` file, `src/`, `README.md`, and `LICENSE`. The build workspace validation command verifies the staged dependency crates and build-only overlays without running Alire builds. The build validation command runs `alr build` in the staged `httpclient`, `sitefetchlib`, and `sitefetch` crates after structural validation, then runs `alr exec -- gnatprove -P sitefetch.gpr --level=0 --mode=check` in the staged `sitefetch` crate. The default `./bin/check_sitefetch` release readiness path also runs the local GNATprove check, CLI tests, sibling release checkers for `sitefetchlib`, `i18n`, and `terminal_styles`, and the `project_tools` build, GNATprove, test, and public API smoke checks. Add `--quiet` before a release validation subcommand when only the exit status matters.
 
 See `../sitefetchlib/README.md` for library-specific build and dependency details. See `docs/SPARK.md` for the currently proved `sitefetch` surface and the GNATprove release command.
 

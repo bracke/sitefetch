@@ -19,7 +19,7 @@ procedure Check_Sitefetch is
 
    Root_Dir : constant String := Ada.Directories.Current_Directory;
    Sitefetchlib_Dir : constant String := Root_Dir & "/../sitefetchlib";
-   Httpclient_Dir   : constant String := Root_Dir & "/../HttpClient";
+   Httpclient_Dir   : constant String := Root_Dir & "/../httpclient";
    I18n_Dir         : constant String := Root_Dir & "/../i18n";
    Regexp_Dir       : constant String := Root_Dir & "/../regexp";
    Terminal_Styles_Dir : constant String := Root_Dir & "/../terminal_styles";
@@ -126,7 +126,7 @@ procedure Check_Sitefetch is
       Manifest_Checks.Require_Workspace_Pin (Root_Dir & "/alire.toml", "project_tools", "../project_tools", Quiet_Mode);
 
       Manifest_Checks.Require_Workspace_Pin
-        (Sitefetchlib_Dir & "/alire.toml", "httpclient", "../HttpClient", Quiet_Mode);
+        (Sitefetchlib_Dir & "/alire.toml", "httpclient", "../httpclient", Quiet_Mode);
       Manifest_Checks.Require_Workspace_Pin (Sitefetchlib_Dir & "/alire.toml", "regexp", "../regexp", Quiet_Mode);
       Manifest_Checks.Require_Workspace_Pin (Sitefetchlib_Dir & "/alire.toml", "zlib", "../zlib", Quiet_Mode);
 
@@ -175,7 +175,7 @@ procedure Check_Sitefetch is
       File_Checks.Require_Contains
         (Httpclient_Dir & "/README.md",
          "temporary workspace pin",
-         "HttpClient README must document the zlib workspace pin release blocker", Quiet_Mode);
+         "httpclient README must document the zlib workspace pin release blocker", Quiet_Mode);
       File_Checks.Require_Contains
         (Root_Dir & "/README.md",
          "docs/SPARK.md",
@@ -207,7 +207,7 @@ procedure Check_Sitefetch is
    procedure Prepare_Release_Manifests (Target_Root : String) is
       Sitefetch_Target    : constant String := Target_Root & "/sitefetch";
       Sitefetchlib_Target : constant String := Target_Root & "/sitefetchlib";
-      Httpclient_Target   : constant String := Target_Root & "/HttpClient";
+      Httpclient_Target   : constant String := Target_Root & "/httpclient";
    begin
       Audit_Release_Staging_Inputs;
 
@@ -264,7 +264,7 @@ procedure Check_Sitefetch is
    procedure Prepare_Release_Source (Target_Root : String) is
       Sitefetch_Target    : constant String := Target_Root & "/sitefetch";
       Sitefetchlib_Target : constant String := Target_Root & "/sitefetchlib";
-      Httpclient_Target   : constant String := Target_Root & "/HttpClient";
+      Httpclient_Target   : constant String := Target_Root & "/httpclient";
    begin
       Audit_Release_Staging_Inputs;
 
@@ -299,7 +299,7 @@ procedure Check_Sitefetch is
    begin
       Manifest_Checks.Write_Build_Manifest_Overlay
         (Httpclient_Release_Template,
-         Target_Root & "/HttpClient/alire.build.toml",
+         Target_Root & "/httpclient/alire.build.toml",
          "[[pins]]" & ASCII.LF
          & "zlib = { path = ""../zlib"" }" & ASCII.LF,
          Quiet_Mode);
@@ -308,7 +308,7 @@ procedure Check_Sitefetch is
         (Sitefetchlib_Release_Template,
          Target_Root & "/sitefetchlib/alire.build.toml",
          "[[pins]]" & ASCII.LF
-         & "httpclient = { path = ""../HttpClient"" }" & ASCII.LF
+         & "httpclient = { path = ""../httpclient"" }" & ASCII.LF
          & "[[pins]]" & ASCII.LF
          & "regexp = { path = ""../regexp"" }" & ASCII.LF
          & "[[pins]]" & ASCII.LF
@@ -360,7 +360,7 @@ procedure Check_Sitefetch is
    procedure Validate_Staged_Release_Manifests (Target_Root : String) is
       Sitefetch_Manifest    : constant String := Target_Root & "/sitefetch/alire.toml";
       Sitefetchlib_Manifest : constant String := Target_Root & "/sitefetchlib/alire.toml";
-      Httpclient_Manifest   : constant String := Target_Root & "/HttpClient/alire.toml";
+      Httpclient_Manifest   : constant String := Target_Root & "/httpclient/alire.toml";
    begin
       Manifest_Checks.Require_Pin_Free_Crate_Manifest
         (Sitefetch_Manifest, "sitefetch", Quiet_Mode);
@@ -393,7 +393,7 @@ procedure Check_Sitefetch is
    procedure Validate_Staged_Release_Source (Target_Root : String) is
       Sitefetch_Dir    : constant String := Target_Root & "/sitefetch";
       Sitefetchlib_Dir : constant String := Target_Root & "/sitefetchlib";
-      Httpclient_Dir   : constant String := Target_Root & "/HttpClient";
+      Httpclient_Dir   : constant String := Target_Root & "/httpclient";
    begin
       Validate_Staged_Release_Manifests (Target_Root);
 
@@ -459,14 +459,14 @@ procedure Check_Sitefetch is
          Quiet_Mode);
 
       Manifest_Checks.Require_Build_Overlay
-        (Target_Root & "/HttpClient/alire.build.toml",
+        (Target_Root & "/httpclient/alire.build.toml",
          Httpclient_Release_Template,
          [Ada.Strings.Unbounded.To_Unbounded_String ("zlib = { path = ""../zlib"" }")],
          Quiet_Mode);
       Manifest_Checks.Require_Build_Overlay
         (Target_Root & "/sitefetchlib/alire.build.toml",
          Sitefetchlib_Release_Template,
-         [Ada.Strings.Unbounded.To_Unbounded_String ("httpclient = { path = ""../HttpClient"" }"),
+         [Ada.Strings.Unbounded.To_Unbounded_String ("httpclient = { path = ""../httpclient"" }"),
           Ada.Strings.Unbounded.To_Unbounded_String ("regexp = { path = ""../regexp"" }"),
           Ada.Strings.Unbounded.To_Unbounded_String ("zlib = { path = ""../zlib"" }")],
          Quiet_Mode);
@@ -486,7 +486,7 @@ procedure Check_Sitefetch is
 
    procedure Activate_Build_Manifests (Target_Root : String) is
    begin
-      Manifest_Checks.Activate_Build_Manifest (Target_Root & "/HttpClient", Quiet_Mode);
+      Manifest_Checks.Activate_Build_Manifest (Target_Root & "/httpclient", Quiet_Mode);
       Manifest_Checks.Activate_Build_Manifest (Target_Root & "/sitefetchlib", Quiet_Mode);
       Manifest_Checks.Activate_Build_Manifest (Target_Root & "/sitefetch", Quiet_Mode);
    end Activate_Build_Manifests;
@@ -495,7 +495,7 @@ procedure Check_Sitefetch is
    begin
       Manifest_Checks.Restore_Publish_Manifest (Target_Root & "/sitefetch");
       Manifest_Checks.Restore_Publish_Manifest (Target_Root & "/sitefetchlib");
-      Manifest_Checks.Restore_Publish_Manifest (Target_Root & "/HttpClient");
+      Manifest_Checks.Restore_Publish_Manifest (Target_Root & "/httpclient");
    end Restore_Publish_Manifests;
 
    procedure Run_Staged_Build
@@ -539,7 +539,7 @@ procedure Check_Sitefetch is
       Activate_Build_Manifests (Target_Root);
 
       begin
-         Run_Staged_Build ("build staged HttpClient release source", Target_Root & "/HttpClient");
+         Run_Staged_Build ("build staged httpclient release source", Target_Root & "/httpclient");
          Run_Staged_Build ("build staged sitefetchlib release source", Target_Root & "/sitefetchlib");
          Run_Staged_Build ("build staged sitefetch release source", Target_Root & "/sitefetch");
          Run_Staged_Gnatprove ("prove staged sitefetch release source", Target_Root & "/sitefetch");
