@@ -94,3 +94,121 @@ jobs:
         env:
           GPR_PROJECT_PATH: ${{ github.workspace }}/httpclient:${{ github.workspace }}/zlib:${{ github.workspace }}/cryptolib:${{ github.workspace }}/regexp
         run: ./bin/check_sitefetch
+
+  # macOS and Windows verify sitefetch (and its suite) build and run natively.
+  # The GNATprove release checklist above stays Linux-only. Both link httpclient
+  # (OpenSSL) and build i18n, whose regeneration builds download_tzdb.
+  macos-build-check:
+    name: macOS native build check
+    # macos-latest is arm64; gnat_native=15.2.1 ships no aarch64-darwin binary.
+    runs-on: macos-15-intel
+    steps:
+      - uses: actions/checkout@v4
+        with: { path: sitefetch }
+      - uses: actions/checkout@v4
+        with: { repository: "${{ github.repository_owner }}/sitefetchlib", path: sitefetchlib }
+      - uses: actions/checkout@v4
+        with: { repository: "${{ github.repository_owner }}/httpclient", path: httpclient }
+      - uses: actions/checkout@v4
+        with: { repository: "${{ github.repository_owner }}/regexp", path: regexp }
+      - uses: actions/checkout@v4
+        with: { repository: "${{ github.repository_owner }}/zlib", path: zlib }
+      - uses: actions/checkout@v4
+        with: { repository: "${{ github.repository_owner }}/cryptolib", path: cryptolib }
+      - uses: actions/checkout@v4
+        with: { repository: "${{ github.repository_owner }}/tarlib", path: tarlib }
+      - uses: actions/checkout@v4
+        with: { repository: "${{ github.repository_owner }}/awklib", path: awklib }
+      - uses: actions/checkout@v4
+        with: { repository: "${{ github.repository_owner }}/i18n", path: i18n }
+      - uses: actions/checkout@v4
+        with: { repository: "${{ github.repository_owner }}/messages", path: messages }
+      - uses: actions/checkout@v4
+        with: { repository: "${{ github.repository_owner }}/terminal_styles", path: terminal_styles }
+      - uses: actions/checkout@v4
+        with: { repository: "${{ github.repository_owner }}/project_tools", path: project_tools }
+      - name: Set up Alire
+        uses: alire-project/setup-alire@v5
+        with:
+          toolchain: gnat_native=15.2.1 gprbuild
+      - name: Install OpenSSL (macOS)
+        run: |
+          brew update
+          brew install openssl@3
+          echo "LIBRARY_PATH=$(brew --prefix openssl@3)/lib" >> "$GITHUB_ENV"
+          echo "CPATH=$(brew --prefix openssl@3)/include" >> "$GITHUB_ENV"
+      - name: Build sitefetch on macOS
+        working-directory: sitefetch
+        run: alr --non-interactive build
+      - name: Build and run the suite on macOS
+        working-directory: sitefetch/tests
+        run: |
+          alr --non-interactive build
+          ./bin/tests
+
+  windows-build-check:
+    name: Windows native build check
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { path: sitefetch }
+      - uses: actions/checkout@v4
+        with: { repository: "${{ github.repository_owner }}/sitefetchlib", path: sitefetchlib }
+      - uses: actions/checkout@v4
+        with: { repository: "${{ github.repository_owner }}/httpclient", path: httpclient }
+      - uses: actions/checkout@v4
+        with: { repository: "${{ github.repository_owner }}/regexp", path: regexp }
+      - uses: actions/checkout@v4
+        with: { repository: "${{ github.repository_owner }}/zlib", path: zlib }
+      - uses: actions/checkout@v4
+        with: { repository: "${{ github.repository_owner }}/cryptolib", path: cryptolib }
+      - uses: actions/checkout@v4
+        with: { repository: "${{ github.repository_owner }}/tarlib", path: tarlib }
+      - uses: actions/checkout@v4
+        with: { repository: "${{ github.repository_owner }}/awklib", path: awklib }
+      - uses: actions/checkout@v4
+        with: { repository: "${{ github.repository_owner }}/i18n", path: i18n }
+      - uses: actions/checkout@v4
+        with: { repository: "${{ github.repository_owner }}/messages", path: messages }
+      - uses: actions/checkout@v4
+        with: { repository: "${{ github.repository_owner }}/terminal_styles", path: terminal_styles }
+      - uses: actions/checkout@v4
+        with: { repository: "${{ github.repository_owner }}/project_tools", path: project_tools }
+      - name: Set up Alire
+        uses: alire-project/setup-alire@v5
+        with:
+          toolchain: gnat_native=15.2.1 gprbuild
+      - name: Install OpenSSL (Windows)
+        shell: bash
+        run: |
+          # Alire's GNAT is mingw-w64, so httpclient's C bridges need the mingw
+          # OpenSSL from MSYS2 -- headers to compile, import libraries to link.
+          pacman() { /c/msys64/usr/bin/pacman "$@"; }
+          pacman-key() { /c/msys64/usr/bin/pacman-key "$@"; }
+          pacman-key --init || true
+          pacman-key --populate msys2 || true
+          sync() { pacman -Sy --noconfirm --needed --disable-download-timeout "$@" mingw-w64-x86_64-openssl; }
+          synced=""
+          for attempt in 1 2 3; do
+            if sync; then synced=yes; break; fi
+            echo "::warning::pacman sync attempt ${attempt} failed"; sleep 15
+          done
+          if [ -z "$synced" ]; then
+            sed 's/^SigLevel.*/SigLevel = Never/' /c/msys64/etc/pacman.conf > /c/msys64/tmp/pacman-nosig.conf
+            for attempt in 1 2 3; do
+              if sync --config C:/msys64/tmp/pacman-nosig.conf; then synced=yes; break; fi
+              echo "::warning::unsigned pacman sync attempt ${attempt} failed"; sleep 15
+            done
+          fi
+          [ -n "$synced" ] || { echo "::error::could not install OpenSSL"; exit 1; }
+          echo "CPATH=C:/msys64/mingw64/include" >> "$GITHUB_ENV"
+          echo "LIBRARY_PATH=C:/msys64/mingw64/lib" >> "$GITHUB_ENV"
+          echo "C:\msys64\mingw64\bin" >> "$GITHUB_PATH"
+      - name: Build sitefetch on Windows
+        working-directory: sitefetch
+        run: alr --non-interactive build
+      - name: Build and run the suite on Windows
+        working-directory: sitefetch/tests
+        run: |
+          alr --non-interactive build
+          .\bin\tests.exe
