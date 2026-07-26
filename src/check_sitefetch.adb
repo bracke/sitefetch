@@ -15,7 +15,6 @@ with Project_Tools.Tree_Checks;
 procedure Check_Sitefetch is
    use Ada.Text_IO;
    use GNAT.OS_Lib;
-   use type Ada.Directories.File_Kind;
 
    Root_Dir : constant String := Ada.Directories.Current_Directory;
    Sitefetchlib_Dir : constant String := Root_Dir & "/../sitefetchlib";
@@ -50,22 +49,22 @@ procedure Check_Sitefetch is
       return Project_Tools.Processes.Locate_Command ("alr");
    end Alr_Path;
 
-   Build_Args : constant Argument_List := (1 => new String'("build"));
+   Build_Args : constant Argument_List := [1 => new String'("build")];
    Gnatprove_Check_Args : constant Argument_List :=
-     (1 => new String'("exec"),
+     [1 => new String'("exec"),
       2 => new String'("--"),
       3 => new String'("gnatprove"),
       4 => new String'("-P"),
       5 => new String'("sitefetch.gpr"),
       6 => new String'("--level=0"),
-      7 => new String'("--mode=check"));
+      7 => new String'("--mode=check")];
    Exec_CLI_Tests_Args : constant Argument_List :=
-     (1 => new String'("exec"), 2 => new String'("--"), 3 => new String'("./bin/tests"));
+     [1 => new String'("exec"), 2 => new String'("--"), 3 => new String'("./bin/tests")];
    GNAT_Version_Args : constant Argument_List :=
-     (1 => new String'("exec"),
+     [1 => new String'("exec"),
       2 => new String'("--"),
       3 => new String'("gnatls"),
-      4 => new String'("--version"));
+      4 => new String'("--version")];
 
    function Quiet_Mode return Boolean is
    begin
@@ -121,6 +120,7 @@ procedure Check_Sitefetch is
          "sitefetch tests manifest must pin Alire GNAT 15", Quiet_Mode);
       Manifest_Checks.Require_Workspace_Pin (Root_Dir & "/alire.toml", "sitefetchlib", "../sitefetchlib", Quiet_Mode);
       Manifest_Checks.Require_Workspace_Pin (Root_Dir & "/alire.toml", "i18n", "../i18n", Quiet_Mode);
+      Manifest_Checks.Require_Workspace_Pin (Root_Dir & "/alire.toml", "messages", "../messages", Quiet_Mode);
       Manifest_Checks.Require_Workspace_Pin
         (Root_Dir & "/alire.toml", "terminal_styles", "../terminal_styles", Quiet_Mode);
       Manifest_Checks.Require_Workspace_Pin (Root_Dir & "/alire.toml", "project_tools", "../project_tools", Quiet_Mode);
@@ -643,6 +643,12 @@ begin
    end if;
 
    Run ("build sitefetch CLI crate", Root_Dir, Alr_Path, Build_Args);
+   --  The build bundles the load-only i18n data into share/i18n (post-build
+   --  action); a deployed bin/sitefetch serves formatting from it at runtime.
+   File_Checks.Require_File
+     (Root_Dir & "/share/i18n/formats.i18ndata",
+      "release must bundle the load-only i18n data (tools/i18n_bundle)",
+      Quiet_Mode);
    Run ("prove sitefetch release surface", Root_Dir, Alr_Path, Gnatprove_Check_Args);
    Run ("build sitefetch CLI tests", Root_Dir & "/tests", Alr_Path, Build_Args);
    Run ("run sitefetch CLI tests", Root_Dir & "/tests", Alr_Path, Exec_CLI_Tests_Args);

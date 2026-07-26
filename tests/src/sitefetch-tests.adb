@@ -2,9 +2,9 @@ with Ada.Calendar;
 with Ada.Directories;
 with Ada.Environment_Variables;
 with Ada.Streams;
-with Ada.Streams.Stream_IO;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
+with Ada.Strings.UTF_Encoding.Wide_Strings;
 with Ada.Text_IO;
 
 with GNAT.OS_Lib;
@@ -13,10 +13,8 @@ with GNAT.Sockets;
 with AUnit;
 with AUnit.Assertions;
 with AUnit.Simple_Test_Cases;
-with AUnit.Test_Suites;
 
 with Project_Tools.Files;
-
 
 with Sitefetch.App;
 with Sitefetch.CLI;
@@ -28,7 +26,15 @@ with Zlib;
 
 package body Sitefetch.Tests is
    use Ada.Strings.Unbounded;
-   use type Ada.Calendar.Time;
+
+   --  The catalog is UTF-8 and Messages.Text returns its bytes verbatim, so a
+   --  literal compared against it must be UTF-8 bytes too. Under -gnatW8 a
+   --  String literal holds decoded code points, not bytes: "terminé" would be
+   --  one Character (U+00E9) instead of the two the catalog carries, and
+   --  "завершено" will not fit Standard.Character at all. Encode from a
+   --  Wide_String to get the bytes back.
+   function U (Item : Wide_String) return String is
+     (Ada.Strings.UTF_Encoding.Wide_Strings.Encode (Item));
    use AUnit.Assertions;
    use type Zlib.Status_Code;
 
@@ -39,47 +45,12 @@ package body Sitefetch.Tests is
    type Release_Manifest_Tool_Test is new AUnit.Simple_Test_Cases.Test_Case with null record;
    type Catalog_Completeness_Test is new AUnit.Simple_Test_Cases.Test_Case with null record;
 
-   Structured_Progress_Count : Natural := 0;
-   Last_Structured_Event     : Sitefetch.Progress_Event := Sitefetch.Progress_Fetching;
-   Last_Structured_URL       : Unbounded_String := Null_Unbounded_String;
-   Last_Structured_Reason    : Unbounded_String := Null_Unbounded_String;
-   Last_Structured_Written_URL : Unbounded_String := Null_Unbounded_String;
-   Last_Structured_Written_Bytes : Natural := 0;
-   Last_Structured_Written_Depth : Natural := 0;
-   Last_Structured_Written_Status : Natural := 0;
-   Last_Structured_Written_Local_Path : Unbounded_String := Null_Unbounded_String;
-   Last_Structured_Written_Final_URL : Unbounded_String := Null_Unbounded_String;
-   Last_Structured_Written_Source_ID : Unbounded_String := Null_Unbounded_String;
-   Last_Structured_Failed_Local_Path : Unbounded_String := Null_Unbounded_String;
-   Last_Structured_Failed_Final_URL : Unbounded_String := Null_Unbounded_String;
-   Last_Structured_Failed_Source_ID : Unbounded_String := Null_Unbounded_String;
-   Last_Structured_Failed_Status : Natural := 0;
-   Last_Structured_Retry_URL : Unbounded_String := Null_Unbounded_String;
-   Last_Structured_Retry_Final_URL : Unbounded_String := Null_Unbounded_String;
-   Last_Structured_Retry_Source_ID : Unbounded_String := Null_Unbounded_String;
    Last_Structured_Retry_Attempt : Natural := 0;
-   Last_Structured_Retry_Status : Natural := 0;
-   Last_Structured_Cache_URL : Unbounded_String := Null_Unbounded_String;
-   Last_Structured_Cache_Decision : Unbounded_String := Null_Unbounded_String;
-   Last_Structured_Cache_Local_Path : Unbounded_String := Null_Unbounded_String;
-   Last_Structured_Robots_URL : Unbounded_String := Null_Unbounded_String;
-   Last_Structured_Robots_Source : Unbounded_String := Null_Unbounded_String;
-   Last_Structured_Final_URL : Unbounded_String := Null_Unbounded_String;
-   Last_Structured_Source_ID : Unbounded_String := Null_Unbounded_String;
-   Last_Structured_Redirect_Hops : Natural := 0;
-   Last_Structured_Redirect_Chain : Unbounded_String := Null_Unbounded_String;
-   Last_Structured_Redirect_Status_Codes : Unbounded_String := Null_Unbounded_String;
-   Last_Structured_Redirect_Target_URLs : Unbounded_String := Null_Unbounded_String;
-   Last_Structured_Redirect_Locations : Unbounded_String := Null_Unbounded_String;
-   Last_Structured_Redirect_Status : Natural := 0;
    Output_Count              : Natural := 0;
    Error_Count               : Natural := 0;
-   Last_Output_Line          : Unbounded_String := Null_Unbounded_String;
    Output_Text               : Unbounded_String := Null_Unbounded_String;
    Error_Text                : Unbounded_String := Null_Unbounded_String;
    Last_Error_Line           : Unbounded_String := Null_Unbounded_String;
-   Last_App_URL              : Unbounded_String := Null_Unbounded_String;
-   Last_App_Target           : Unbounded_String := Null_Unbounded_String;
    App_Progress_Was_Null     : Boolean := False;
    App_Fetch_Count           : Natural := 0;
    Last_App_Options          : Sitefetch.Fetch_Options := Sitefetch.Default_Fetch_Options;
@@ -135,44 +106,6 @@ package body Sitefetch.Tests is
       return ".";
    end Containing_Test_Path;
 
-
-   function Has_Generated_Atomic_Artifact
-     (Directory : String; Base_Name : String) return Boolean
-   is
-      Search : Ada.Directories.Search_Type;
-      Item   : Ada.Directories.Directory_Entry_Type;
-      Name   : Unbounded_String;
-   begin
-      if not Ada.Directories.Exists (Directory) then
-         return False;
-      end if;
-
-      Ada.Directories.Start_Search
-        (Search, Directory, Base_Name & ".sitefetch_*",
-         (Ada.Directories.Ordinary_File => True,
-          Ada.Directories.Directory => True,
-          Ada.Directories.Special_File => True));
-      while Ada.Directories.More_Entries (Search) loop
-         Ada.Directories.Get_Next_Entry (Search, Item);
-         Name := To_Unbounded_String (Ada.Directories.Simple_Name (Item));
-         if Ada.Strings.Fixed.Index (To_String (Name), Base_Name & ".sitefetch_tmp.sitefetch_") = 1
-           or else Ada.Strings.Fixed.Index (To_String (Name), Base_Name & ".sitefetch_old.sitefetch_") = 1
-           or else Ada.Strings.Fixed.Index (To_String (Name), Base_Name & ".sitefetch_download.sitefetch_") = 1
-         then
-            Ada.Directories.End_Search (Search);
-            return True;
-         end if;
-      end loop;
-      Ada.Directories.End_Search (Search);
-      return False;
-   exception
-      when others =>
-         if Ada.Directories.More_Entries (Search) then
-            Ada.Directories.End_Search (Search);
-         end if;
-         return False;
-   end Has_Generated_Atomic_Artifact;
-
    procedure Write_Test_File (Path : String; Content : String) is
       File      : Ada.Text_IO.File_Type;
       Directory : constant String := Containing_Test_Path (Path);
@@ -185,114 +118,6 @@ package body Sitefetch.Tests is
       Ada.Text_IO.Put (File, Content);
       Ada.Text_IO.Close (File);
    end Write_Test_File;
-
-   procedure Write_Binary_Test_File (Path : String; Content : String) is
-      use Ada.Streams;
-
-      File      : Ada.Streams.Stream_IO.File_Type;
-      Directory : constant String := Containing_Test_Path (Path);
-      Data      : Stream_Element_Array (1 .. Stream_Element_Offset (Content'Length));
-   begin
-      if Directory /= "." then
-         Ada.Directories.Create_Path (Directory);
-      end if;
-
-      for Index in Data'Range loop
-         Data (Index) :=
-           Stream_Element (Character'Pos (Content (Content'First + Natural (Index - Data'First))));
-      end loop;
-
-      Ada.Streams.Stream_IO.Create (File, Ada.Streams.Stream_IO.Out_File, Path);
-      Ada.Streams.Stream_IO.Write (File, Data);
-      Ada.Streams.Stream_IO.Close (File);
-   end Write_Binary_Test_File;
-
-   type Progress_Event_Counts is array (Sitefetch.Progress_Event) of Natural;
-
-   protected Parallel_Progress is
-      procedure Reset;
-      procedure Capture (Event : Sitefetch.Progress_Event);
-      function Count (Event : Sitefetch.Progress_Event) return Natural;
-   private
-      Counts : Progress_Event_Counts := (others => 0);
-   end Parallel_Progress;
-
-   protected body Parallel_Progress is
-      procedure Reset is
-      begin
-         Counts := (others => 0);
-      end Reset;
-
-      procedure Capture (Event : Sitefetch.Progress_Event) is
-      begin
-         Counts (Event) := Counts (Event) + 1;
-      end Capture;
-
-      function Count (Event : Sitefetch.Progress_Event) return Natural is
-      begin
-         return Counts (Event);
-      end Count;
-   end Parallel_Progress;
-
-   procedure Record_Parallel_Progress (Event : Sitefetch.Progress_Event; URL : String) is
-      pragma Unreferenced (URL);
-   begin
-      Parallel_Progress.Capture (Event);
-   end Record_Parallel_Progress;
-
-   procedure Record_Structured_Progress (Progress : Sitefetch.Progress_Record) is
-   begin
-      Structured_Progress_Count := Structured_Progress_Count + 1;
-      Last_Structured_Event := Progress.Event;
-      Last_Structured_URL := Progress.URL;
-      Last_Structured_Reason := Progress.Reason;
-      if Progress.Event = Sitefetch.Progress_Written then
-         Last_Structured_Written_URL := Progress.URL;
-         Last_Structured_Written_Bytes := Progress.Bytes_Written;
-         Last_Structured_Written_Depth := Progress.Depth;
-         Last_Structured_Written_Status := Progress.Status_Code;
-         Last_Structured_Written_Local_Path := Progress.Local_Path;
-         Last_Structured_Written_Final_URL := Progress.Final_URL;
-         Last_Structured_Written_Source_ID := Progress.Source_ID;
-      elsif Progress.Event = Sitefetch.Progress_Failed then
-         Last_Structured_Failed_Local_Path := Progress.Local_Path;
-         Last_Structured_Failed_Final_URL := Progress.Final_URL;
-         Last_Structured_Failed_Source_ID := Progress.Source_ID;
-         Last_Structured_Failed_Status := Progress.Status_Code;
-      elsif Progress.Event = Sitefetch.Progress_Retry then
-         Last_Structured_Retry_URL := Progress.URL;
-         Last_Structured_Retry_Final_URL := Progress.Final_URL;
-         Last_Structured_Retry_Source_ID := Progress.Source_ID;
-         Last_Structured_Retry_Attempt := Progress.Retry_Attempt;
-         Last_Structured_Retry_Status := Progress.Status_Code;
-      elsif Progress.Event = Sitefetch.Progress_Cache_Reused
-        or else Progress.Event = Sitefetch.Progress_Cache_Revalidate
-      then
-         if Progress.Event = Sitefetch.Progress_Cache_Revalidate
-           or else Length (Last_Structured_Cache_Decision) = 0
-         then
-            Last_Structured_Cache_URL := Progress.URL;
-            Last_Structured_Cache_Decision := Progress.Cache_Decision;
-            Last_Structured_Cache_Local_Path := Progress.Local_Path;
-         end if;
-      elsif Progress.Event = Sitefetch.Progress_Robots_Loaded
-        or else Progress.Event = Sitefetch.Progress_Robots_Failed
-        or else Progress.Event = Sitefetch.Progress_Robots_Allowed
-        or else Progress.Event = Sitefetch.Progress_Robots_Disallowed
-      then
-         Last_Structured_Robots_URL := Progress.URL;
-         Last_Structured_Robots_Source := Progress.Robots_Source;
-      elsif Progress.Event = Sitefetch.Progress_Redirected then
-         Last_Structured_Final_URL := Progress.Final_URL;
-         Last_Structured_Source_ID := Progress.Source_ID;
-         Last_Structured_Redirect_Hops := Progress.Redirect_Hops;
-         Last_Structured_Redirect_Chain := Progress.Redirect_Chain;
-         Last_Structured_Redirect_Status_Codes := Progress.Redirect_Status_Codes;
-         Last_Structured_Redirect_Target_URLs := Progress.Redirect_Target_URLs;
-         Last_Structured_Redirect_Locations := Progress.Redirect_Locations;
-         Last_Structured_Redirect_Status := Progress.Status_Code;
-      end if;
-   end Record_Structured_Progress;
 
    procedure Save_Environment
      (Name  : String;
@@ -325,12 +150,9 @@ package body Sitefetch.Tests is
    begin
       Output_Count := 0;
       Error_Count := 0;
-      Last_Output_Line := Null_Unbounded_String;
       Output_Text := Null_Unbounded_String;
       Error_Text := Null_Unbounded_String;
       Last_Error_Line := Null_Unbounded_String;
-      Last_App_URL := Null_Unbounded_String;
-      Last_App_Target := Null_Unbounded_String;
       App_Progress_Was_Null := False;
       App_Fetch_Count := 0;
       Last_App_Options := Sitefetch.Default_Fetch_Options;
@@ -339,7 +161,6 @@ package body Sitefetch.Tests is
    procedure Record_Output (Line : String) is
    begin
       Output_Count := Output_Count + 1;
-      Last_Output_Line := To_Unbounded_String (Line);
       Append (Output_Text, Line);
       Append (Output_Text, Character'Val (10));
    end Record_Output;
@@ -388,10 +209,9 @@ package body Sitefetch.Tests is
       Progress         : Sitefetch.Progress_Callback;
       Options          : Sitefetch.Fetch_Options) return Boolean
    is
+      pragma Unreferenced (URL, Target_Directory);
    begin
       App_Fetch_Count := App_Fetch_Count + 1;
-      Last_App_URL := To_Unbounded_String (URL);
-      Last_App_Target := To_Unbounded_String (Target_Directory);
       App_Progress_Was_Null := Progress = null;
       Last_App_Options := Options;
       Statistics := (others => <>);
@@ -407,10 +227,9 @@ package body Sitefetch.Tests is
       Progress         : Sitefetch.Progress_Callback;
       Options          : Sitefetch.Fetch_Options) return Boolean
    is
+      pragma Unreferenced (URL, Target_Directory);
    begin
       App_Fetch_Count := App_Fetch_Count + 1;
-      Last_App_URL := To_Unbounded_String (URL);
-      Last_App_Target := To_Unbounded_String (Target_Directory);
       App_Progress_Was_Null := Progress = null;
       Last_App_Options := Options;
 
@@ -428,11 +247,9 @@ package body Sitefetch.Tests is
       Progress         : Sitefetch.Progress_Callback;
       Options          : Sitefetch.Fetch_Options) return Boolean
    is
-      pragma Unreferenced (Options);
+      pragma Unreferenced (Target_Directory, Options);
    begin
       App_Fetch_Count := App_Fetch_Count + 1;
-      Last_App_URL := To_Unbounded_String (URL);
-      Last_App_Target := To_Unbounded_String (Target_Directory);
       App_Progress_Was_Null := Progress = null;
 
       if Progress /= null then
@@ -460,7 +277,6 @@ package body Sitefetch.Tests is
       pragma Unreferenced (URL, Progress, Options);
    begin
       App_Fetch_Count := App_Fetch_Count + 1;
-      Last_App_Target := To_Unbounded_String (Target_Directory);
       Write_Test_File (Target_Directory & "/index.html", "created target");
       Statistics := (others => <>);
       Statistics.Attempted := 1;
@@ -568,15 +384,11 @@ package body Sitefetch.Tests is
    protected type Fixture_Control is
       entry Wait_Ready (Port : out GNAT.Sockets.Port_Type);
       procedure Set_Port (Port : GNAT.Sockets.Port_Type);
-      procedure Set_Peer_Port (Port : GNAT.Sockets.Port_Type);
       function Peer_URL return String;
       procedure Stop;
       function Stopped return Boolean;
       procedure Count (Method : String; Path : String);
       function Request_Count (Method : String; Path : String) return Natural;
-      function Delay_Child_Count return Natural;
-      function Delay_Child_Gap_MS (Index : Positive) return Natural;
-      procedure Set_Robots_Fail (Value : Boolean);
       function Robots_Should_Fail return Boolean;
    private
       Ready       : Boolean := False;
@@ -629,11 +441,6 @@ package body Sitefetch.Tests is
          Listen_Port := Port;
          Ready := True;
       end Set_Port;
-
-      procedure Set_Peer_Port (Port : GNAT.Sockets.Port_Type) is
-      begin
-         Peer_Port := Port;
-      end Set_Peer_Port;
 
       function Peer_URL return String is
       begin
@@ -722,11 +529,6 @@ package body Sitefetch.Tests is
          end if;
       end Count;
 
-      procedure Set_Robots_Fail (Value : Boolean) is
-      begin
-         Robots_Fail := Value;
-      end Set_Robots_Fail;
-
       function Robots_Should_Fail return Boolean is
       begin
          return Robots_Fail;
@@ -795,26 +597,6 @@ package body Sitefetch.Tests is
          end if;
       end Request_Count;
 
-      function Delay_Child_Count return Natural is
-      begin
-         return Delay_Children;
-      end Delay_Child_Count;
-
-      function Delay_Child_Gap_MS (Index : Positive) return Natural is
-         Gap : Duration := 0.0;
-      begin
-         if Index = 1 and then Delay_Children >= 2 then
-            Gap := Delay_Child_2 - Delay_Child_1;
-         elsif Index = 2 and then Delay_Children >= 3 then
-            Gap := Delay_Child_3 - Delay_Child_2;
-         end if;
-
-         if Gap <= 0.0 then
-            return 0;
-         else
-            return Natural (Long_Float (Gap) * 1000.0);
-         end if;
-      end Delay_Child_Gap_MS;
    end Fixture_Control;
 
    task type Fixture_Server (Control : not null access Fixture_Control);
@@ -1157,7 +939,6 @@ package body Sitefetch.Tests is
          end if;
       end Respond_If_Range_Changed;
 
-
       procedure Handle (Socket : GNAT.Sockets.Socket_Type) is
          Request : constant String := Request_Text (Socket);
          Method  : constant String := Request_Method (Request);
@@ -1430,7 +1211,6 @@ package body Sitefetch.Tests is
          end if;
       end Handle;
    begin
-      GNAT.Sockets.Initialize;
       GNAT.Sockets.Create_Socket (Server);
       Address.Addr := GNAT.Sockets.Inet_Addr ("127.0.0.1");
       Address.Port := 0;
@@ -1464,16 +1244,6 @@ package body Sitefetch.Tests is
 
    overriding procedure Run_Test (Item : in out CLI_Parse_Test) is
       use type Sitefetch.CLI.Parse_Status;
-      use type Sitefetch.Safety_Mode;
-      use type Sitefetch.Domain_Policy;
-      use type Sitefetch.Head_Policy;
-      use type Sitefetch.Robots_Policy;
-      use type Sitefetch.Robots_Failure_Policy;
-      use type Sitefetch.Cache_Mode;
-      use type Sitefetch.Cache_Resource_Strategy;
-      use type Sitefetch.Cache_Hash_Algorithm;
-      use type Sitefetch.Diagnostics_Mode;
-      use type Sitefetch.Write_Durability_Mode;
       pragma Unreferenced (Item);
    begin
       declare
@@ -1782,7 +1552,6 @@ package body Sitefetch.Tests is
 
    overriding procedure Run_Test (Item : in out App_Run_Test) is
       use type Sitefetch.App.Exit_Status;
-      use type Sitefetch.Safety_Mode;
       pragma Unreferenced (Item);
    begin
       declare
@@ -2379,10 +2148,10 @@ package body Sitefetch.Tests is
          "English failed status substitutes reason");
 
       Sitefetch.Messages.Set_Locale ("fr_FR.UTF-8");
-      Assert (Sitefetch.Messages.Text ("status.completed") = "terminé", "French status renders");
+      Assert (Sitefetch.Messages.Text ("status.completed") = U ("terminé"), "French status renders");
       Assert
         (Sitefetch.Messages.Text ("status.failed_reason", "reason", "BROKEN_DOWNLOAD")
-         = "échec: BROKEN_DOWNLOAD",
+         = U ("échec: BROKEN_DOWNLOAD"),
          "French failed status substitutes reason");
 
       Sitefetch.Messages.Set_Locale ("es_ES.UTF-8");
@@ -2393,10 +2162,10 @@ package body Sitefetch.Tests is
          "Spanish failed status substitutes reason");
 
       Sitefetch.Messages.Set_Locale ("ru_RU.UTF-8");
-      Assert (Sitefetch.Messages.Text ("status.completed") = "завершено", "Russian status renders");
+      Assert (Sitefetch.Messages.Text ("status.completed") = U ("завершено"), "Russian status renders");
       Assert
         (Sitefetch.Messages.Text ("status.failed_reason", "reason", "BROKEN_DOWNLOAD")
-         = "сбой: BROKEN_DOWNLOAD",
+         = U ("сбой: BROKEN_DOWNLOAD"),
          "Russian failed status substitutes reason");
 
       Save_Environment ("LC_ALL", LC_All_Found, LC_All_Value);
@@ -2409,7 +2178,7 @@ package body Sitefetch.Tests is
          Ada.Environment_Variables.Set ("LANG", "fr_FR.UTF-8");
          Sitefetch.Messages.Detect_System_Locale;
          Assert (Sitefetch.Messages.Current_Locale = "pl-pl", "LC_ALL has locale precedence");
-         Assert (Sitefetch.Messages.Text ("status.completed") = "ukończono", "LC_ALL locale renders");
+         Assert (Sitefetch.Messages.Text ("status.completed") = U ("ukończono"), "LC_ALL locale renders");
 
          Ada.Environment_Variables.Clear ("LC_ALL");
          Sitefetch.Messages.Detect_System_Locale;
@@ -2549,11 +2318,11 @@ package body Sitefetch.Tests is
               (Sitefetch.Progress_Format.Format
                  (Progress_Cache_Reused, "https://example.com"), "[.]"),
             "cache reuse progress uses muted marker");
-      Assert
-        (Ada.Strings.Fixed.Index
-           (Sitefetch.Progress_Format.Format
-              (Progress_Cache_Rejected, "https://example.com"), "[.]") = 1,
-         "cache rejection progress uses muted marker");
+         Assert
+           (Ada.Strings.Fixed.Index
+              (Sitefetch.Progress_Format.Format
+                 (Progress_Cache_Rejected, "https://example.com"), "[.]") = 1,
+            "cache rejection progress uses muted marker");
          Assert
            (Has_Prefix
               (Sitefetch.Progress_Format.Format
@@ -2666,10 +2435,10 @@ package body Sitefetch.Tests is
         (if Target_Root'Length > 0 and then Target_Root (Target_Root'First) = '/'
          then Target_Root
          else Previous & "/" & Target_Root);
-      Args            : GNAT.OS_Lib.Argument_List :=
-        (1 => new String'("--quiet"),
+      Args            : constant GNAT.OS_Lib.Argument_List :=
+        [1 => new String'("--quiet"),
          2 => new String'(Mode),
-         3 => new String'(Absolute_Target));
+         3 => new String'(Absolute_Target)];
    begin
       Ada.Directories.Set_Directory ("..");
       declare
@@ -2982,7 +2751,6 @@ package body Sitefetch.Tests is
       return False;
    end Catalog_Has;
 
-
    function Contains (Item : String; Fragment : String) return Boolean is
    begin
       if Fragment'Length = 0 then
@@ -3112,14 +2880,19 @@ package body Sitefetch.Tests is
    end Run_Test;
 
    function Suite return AUnit.Test_Suites.Access_Test_Suite is
+      --  Add_Test takes an anonymous access parameter. Allocating directly into
+      --  it yields an anonymous-access allocator, whose pool is implementation
+      --  defined; naming the type pins the cases to the standard pool instead.
+      type Test_Case_Access is access all AUnit.Simple_Test_Cases.Test_Case'Class;
+
       Result : constant AUnit.Test_Suites.Access_Test_Suite := AUnit.Test_Suites.New_Suite;
    begin
-      Result.Add_Test (new CLI_Parse_Test);
-      Result.Add_Test (new App_Run_Test);
-      Result.Add_Test (new Message_Locale_Test);
-      Result.Add_Test (new Terminal_Format_Test);
-      Result.Add_Test (new Release_Manifest_Tool_Test);
-      Result.Add_Test (new Catalog_Completeness_Test);
+      Result.Add_Test (Test_Case_Access'(new CLI_Parse_Test));
+      Result.Add_Test (Test_Case_Access'(new App_Run_Test));
+      Result.Add_Test (Test_Case_Access'(new Message_Locale_Test));
+      Result.Add_Test (Test_Case_Access'(new Terminal_Format_Test));
+      Result.Add_Test (Test_Case_Access'(new Release_Manifest_Tool_Test));
+      Result.Add_Test (Test_Case_Access'(new Catalog_Completeness_Test));
       return Result;
    end Suite;
 end Sitefetch.Tests;

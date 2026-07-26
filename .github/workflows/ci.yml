@@ -44,6 +44,11 @@ jobs:
         with:
           repository: ${{ github.repository_owner }}/i18n
           path: i18n
+      - name: Check out messages sibling
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/messages
+          path: messages
       - name: Check out terminal_styles sibling
         uses: actions/checkout@v4
         with:

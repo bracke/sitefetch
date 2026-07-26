@@ -19,3 +19,6 @@ lib/
 # Local scratch binaries from manual experiments
 /test_ada_rename
 /test_ada_rename.*
+
+# Bundled i18n locale data (generated, copied from the i18n dependency)
+/share/i18n/

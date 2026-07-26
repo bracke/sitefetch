@@ -12,7 +12,7 @@ long-description = "sitefetch is the CLI crate for mirroring a website to a loca
 website = "https://github.com/bracke/sitefetch"
 tags = ["website", "mirror", "crawler", "http", "cli"]
 
-executables = ["sitefetch"]
+executables = ["sitefetch", "check_sitefetch"]
 
 [[depends-on]]
 gnat_native = "=15.2.1"
@@ -22,6 +22,9 @@ sitefetchlib = "*"
 
 [[depends-on]]
 i18n = "*"
+
+[[depends-on]]
+messages = "*"
 
 [[depends-on]]
 terminal_styles = "*"
@@ -36,7 +39,32 @@ sitefetchlib = { path = "../sitefetchlib" }
 i18n = { path = "../i18n" }
 
 [[pins]]
+messages = { path = "../messages" }
+
+[[pins]]
 terminal_styles = { path = "../terminal_styles" }
 
 [[pins]]
 project_tools = { path = "../project_tools" }
+
+# Pins are root-only in Alire: this root transitively builds zlib (via
+# sitefetchlib -> httpclient), so it must pin zlib's dependency cryptolib.
+[[pins]]
+cryptolib = { path = "../cryptolib" }
+
+# Bundle i18n's generated locale data into share/i18n after every build. The
+# load-only i18n serves formatting from those files at runtime, so a deployed
+# bin/sitefetch must ship them (found at Exe/../share/i18n). bundle_i18n_data is
+# a standalone Ada tool (tools/i18n_bundle) kept out of the app's own bin so it
+# is never installed; build it, then run it. Both steps are plain executables --
+# no shell. gprbuild is incremental, so the build step is a no-op once current.
+[[actions]]
+type = "post-build"
+command = ["gprbuild", "-P", "tools/i18n_bundle/bundle_i18n_data.gpr", "-p", "-q"]
+
+[[actions]]
+type = "post-build"
+command = ["tools/i18n_bundle/bin/bundle_i18n_data"]
+
+[build-profiles]
+"*" = "development"

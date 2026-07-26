@@ -17,7 +17,6 @@ package body Sitefetch.App is
    use type Ada.Calendar.Time;
    use type Ada.Directories.File_Kind;
    use type Sitefetch.CLI.Parse_Status;
-   use type Website_Fetcher;
 
    Version : constant String := "0.1.0";
 
@@ -294,7 +293,6 @@ package body Sitefetch.App is
      (Options      : Sitefetch.CLI.Parsed_Options;
       Error_Output : Line_Sink)
    is
-      use Ada.Strings.Unbounded;
    begin
       if Length (Options.Error_Arg_Key) > 0 then
          Print_Error
@@ -346,7 +344,6 @@ package body Sitefetch.App is
       Output       : Line_Sink;
       Error_Output : Line_Sink)
    is
-      use Ada.Strings.Unbounded;
    begin
       if Success then
          Put_Line
@@ -433,7 +430,6 @@ package body Sitefetch.App is
    end Print_Summary;
 
    function JSON_Failure_Downloads (Statistics : Sitefetch.Fetch_Statistics) return String is
-      use Ada.Strings.Unbounded;
       Result : Unbounded_String := To_Unbounded_String ("[");
       First  : Boolean := True;
    begin
@@ -457,7 +453,6 @@ package body Sitefetch.App is
       Elapsed    : Duration;
       Output     : Line_Sink)
    is
-      use Ada.Strings.Unbounded;
    begin
       Put_Line
         (Output,
@@ -516,8 +511,6 @@ package body Sitefetch.App is
       Output       : Line_Sink;
       Error_Output : Line_Sink) return Exit_Status
    is
-      use Ada.Strings.Unbounded;
-
       Source_URL       : Unbounded_String;
       Target_Directory : Unbounded_String;
       Statistics       : Sitefetch.Fetch_Statistics;

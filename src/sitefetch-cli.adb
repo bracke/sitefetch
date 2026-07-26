@@ -1,5 +1,4 @@
 with Ada.Command_Line;
-with Ada.Strings.Unbounded;
 
 package body Sitefetch.CLI is
    use Ada.Strings.Unbounded;
@@ -269,7 +268,8 @@ package body Sitefetch.CLI is
         or else Argument = "--retry-jitter-ms"
         or else Argument = "--request-delay-ms" or else Argument = "--cache-max-stale-ms"
         or else Argument = "--max-per-host"
-        or else Argument = "--workers" then
+        or else Argument = "--workers"
+      then
          if Argument_Index = Arguments'Last then
             Set_Error (Options, "error.unknown_option", "option", Argument);
             Failed := True;
@@ -450,7 +450,7 @@ package body Sitefetch.CLI is
    begin
       if Count = 0 then
          declare
-            Empty : Argument_Array (1 .. 1) := [To_Unbounded_String ("")];
+            Empty : constant Argument_Array (1 .. 1) := [To_Unbounded_String ("")];
             Result : Parsed_Options := Parse (Empty);
          begin
             Set_Error (Result, "error.missing_url");
