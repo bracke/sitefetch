@@ -29,6 +29,11 @@ jobs:
         with:
           repository: ${{ github.repository_owner }}/regexp
           path: regexp
+      - name: Check out hostkit sibling
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/hostkit
+          path: hostkit
       - name: Check out zlib sibling
         uses: actions/checkout@v4
         with:
@@ -112,6 +117,8 @@ jobs:
       - uses: actions/checkout@v4
         with: { repository: "${{ github.repository_owner }}/regexp", path: regexp }
       - uses: actions/checkout@v4
+        with: { repository: "${{ github.repository_owner }}/hostkit", path: hostkit }
+      - uses: actions/checkout@v4
         with: { repository: "${{ github.repository_owner }}/zlib", path: zlib }
       - uses: actions/checkout@v4
         with: { repository: "${{ github.repository_owner }}/cryptolib", path: cryptolib }
@@ -158,6 +165,8 @@ jobs:
         with: { repository: "${{ github.repository_owner }}/httpclient", path: httpclient }
       - uses: actions/checkout@v4
         with: { repository: "${{ github.repository_owner }}/regexp", path: regexp }
+      - uses: actions/checkout@v4
+        with: { repository: "${{ github.repository_owner }}/hostkit", path: hostkit }
       - uses: actions/checkout@v4
         with: { repository: "${{ github.repository_owner }}/zlib", path: zlib }
       - uses: actions/checkout@v4
