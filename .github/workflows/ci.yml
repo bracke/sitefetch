@@ -18,6 +18,18 @@ jobs:
         uses: bracke/project_tools/.github/actions/checkout-ada-siblings@main
         with:
           root: sitefetch
+      - name: Cache the CLDR upstream tree (avoids i18n's 82 MB live download)
+        # Building the transitive i18n dependency regenerates its data, which on a
+        # fresh checkout downloads the 82 MB cldr-json release from the GitHub CDN.
+        # That fetch reaches Windows runners only intermittently and a run-long
+        # outage exhausts i18n's own six-attempt backoff. cldr-json is installed
+        # atomically (staging dir + rename), so it is only ever present complete;
+        # the exact-hash key (no restore-keys fallback) means a cldr_version bump
+        # misses the cache and refetches rather than reusing a stale tree.
+        uses: actions/cache@v4
+        with:
+          path: i18n/cldr/upstream/cldr-json
+          key: cldr-json-${{ runner.os }}-${{ hashFiles('i18n/cldr/upstream/source_manifest.txt') }}
       - name: Set up Alire
         uses: alire-project/setup-alire@v6
         with:
@@ -58,6 +70,18 @@ jobs:
         uses: bracke/project_tools/.github/actions/checkout-ada-siblings@main
         with:
           root: sitefetch
+      - name: Cache the CLDR upstream tree (avoids i18n's 82 MB live download)
+        # Building the transitive i18n dependency regenerates its data, which on a
+        # fresh checkout downloads the 82 MB cldr-json release from the GitHub CDN.
+        # That fetch reaches Windows runners only intermittently and a run-long
+        # outage exhausts i18n's own six-attempt backoff. cldr-json is installed
+        # atomically (staging dir + rename), so it is only ever present complete;
+        # the exact-hash key (no restore-keys fallback) means a cldr_version bump
+        # misses the cache and refetches rather than reusing a stale tree.
+        uses: actions/cache@v4
+        with:
+          path: i18n/cldr/upstream/cldr-json
+          key: cldr-json-${{ runner.os }}-${{ hashFiles('i18n/cldr/upstream/source_manifest.txt') }}
       - name: Set up Alire
         uses: alire-project/setup-alire@v6
         with:
@@ -87,6 +111,18 @@ jobs:
         uses: bracke/project_tools/.github/actions/checkout-ada-siblings@main
         with:
           root: sitefetch
+      - name: Cache the CLDR upstream tree (avoids i18n's 82 MB live download)
+        # Building the transitive i18n dependency regenerates its data, which on a
+        # fresh checkout downloads the 82 MB cldr-json release from the GitHub CDN.
+        # That fetch reaches Windows runners only intermittently and a run-long
+        # outage exhausts i18n's own six-attempt backoff. cldr-json is installed
+        # atomically (staging dir + rename), so it is only ever present complete;
+        # the exact-hash key (no restore-keys fallback) means a cldr_version bump
+        # misses the cache and refetches rather than reusing a stale tree.
+        uses: actions/cache@v4
+        with:
+          path: i18n/cldr/upstream/cldr-json
+          key: cldr-json-${{ runner.os }}-${{ hashFiles('i18n/cldr/upstream/source_manifest.txt') }}
       - name: Set up Alire
         uses: alire-project/setup-alire@v6
         with:
