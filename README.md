@@ -354,8 +354,9 @@ describe it: the cache markers (`cache:`, `cached:`, `cache-skip:`) and `resume:
 
 What a machine translation cannot be trusted with is checked mechanically instead. `catalog_check`,
 from the `messages` crate, verifies that every locale still carries the arguments its English
-original takes, that option names survive translation as typed, and that no apostrophe opens an ICU
-quoted literal:
+original takes, that option names survive translation as typed, that no apostrophe opens an ICU
+quoted literal, and that no run of the English original is left standing inside a translation
+written in another script:
 
 ```sh
 catalog_check share/sitefetch/messages.catalog \
