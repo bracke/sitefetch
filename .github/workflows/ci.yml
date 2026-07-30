@@ -66,8 +66,7 @@ jobs:
         run: |
           alr --non-interactive build
           ./bin/catalog_check ../../../sitefetch/share/sitefetch/messages.catalog \
-            --verbatim=sitefetch,--help,--version,--quiet,--verbose,--locale,--jsonl \
-            --locale-only=meta.
+            --verbatim=sitefetch,--help,--version,--quiet,--verbose,--locale,--jsonl
   macos-build-check:
     name: macOS native build check
     # macos-latest is arm64; gnat_native=15.2.1 ships no aarch64-darwin binary.

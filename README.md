@@ -338,20 +338,17 @@ Locale selection order:
 
 Locale values such as `de_DE.UTF-8` are normalized for lookup. CLDR 48 Modern language
 identifiers are accepted and render through deterministic fallback: exact locale, then parent
-subtags such as `zh-hant`, then base language, then English. The catalog keeps the existing
-reviewed translations intact and adds provisional translations for the remaining CLDR
-Modern language IDs, marked with `meta.provisional = "true"`. Parent-locale and English fallback
+subtags such as `zh-hant`, then base language, then English. Parent-locale and English fallback
 still apply when a key is missing.
+
+Every locale other than `en` is machine-translated and has not been read by a speaker of the
+language. That holds for all of them equally, and the catalog says so nowhere in particular because
+there is no subset it does not apply to. Corrections from speakers are welcome.
 
 One CLDR Modern identifier has no entries of its own: `chr` (Cherokee), which is served by the
 English fallback. A locale whose every string is English is not a translation, and carrying one
 would claim coverage the catalog does not have. `--locale chr` behaves exactly as it did when the
 entries were present. Entries added by a speaker would restore it with no other change.
-
-A provisional locale is machine-translated and has not been read by a speaker of the language.
-Twenty-three locales carry no `meta.provisional` marker -- `en` and the twenty-two that were
-translated and reviewed -- and those are the only ones the marker vouches for. Corrections from
-speakers are welcome; removing the marker is how a locale graduates.
 
 Two labels stay in English in every locale by design, because they name the mechanism rather than
 describe it: the cache markers (`cache:`, `cached:`, `cache-skip:`) and `resume:`, `retry:`,
@@ -365,8 +362,7 @@ written in another script:
 
 ```sh
 catalog_check share/sitefetch/messages.catalog \
-  --verbatim=sitefetch,--help,--version,--quiet,--verbose,--locale,--jsonl \
-  --locale-only=meta.
+  --verbatim=sitefetch,--help,--version,--quiet,--verbose,--locale,--jsonl
 ```
 
 CI runs it on every push.
