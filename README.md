@@ -339,9 +339,31 @@ Locale selection order:
 Locale values such as `de_DE.UTF-8` are normalized for lookup. CLDR 48 Modern language
 identifiers are accepted and render through deterministic fallback: exact locale, then parent
 subtags such as `zh-hant`, then base language, then English. The catalog keeps the existing
-reviewed translations intact and adds generated provisional translations for the remaining CLDR
+reviewed translations intact and adds provisional translations for the remaining CLDR
 Modern language IDs, marked with `meta.provisional = "true"`. Parent-locale and English fallback
 still apply when a key is missing.
+
+A provisional locale is machine-translated and has not been read by a speaker of the language.
+Twenty-three locales carry no `meta.provisional` marker -- `en` and the twenty-two that were
+translated and reviewed -- and those are the only ones the marker vouches for. Corrections from
+speakers are welcome; removing the marker is how a locale graduates.
+
+Two labels stay in English in every locale by design, because they name the mechanism rather than
+describe it: the cache markers (`cache:`, `cached:`, `cache-skip:`) and `resume:`, `retry:`,
+`robots:`. The usage syntax line is option names and is likewise identical everywhere.
+
+What a machine translation cannot be trusted with is checked mechanically instead. `catalog_check`,
+from the `messages` crate, verifies that every locale still carries the arguments its English
+original takes, that option names survive translation as typed, and that no apostrophe opens an ICU
+quoted literal:
+
+```sh
+catalog_check share/sitefetch/messages.catalog \
+  --verbatim=sitefetch,--help,--version,--quiet,--verbose,--locale,--jsonl \
+  --locale-only=meta.
+```
+
+CI runs it on every push.
 
 ## Build
 
