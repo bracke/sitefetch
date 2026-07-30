@@ -56,6 +56,18 @@ jobs:
   # macOS and Windows verify sitefetch (and its suite) build and run natively.
   # The GNATprove release checklist above stays Linux-only. Both link httpclient
   # (OpenSSL) and build i18n, whose regeneration builds download_tzdb.
+      # A catalogue can be well-formed and still have drifted from the
+      # messages it translates: a key with no original, an argument dropped so
+      # the text renders without the value it was about, an option name
+      # translated into a word the program rejects. The rule lives with the
+      # catalogue format, in the messages crate.
+      - name: Check the message catalogue
+        working-directory: messages/tools/catalog_check
+        run: |
+          alr --non-interactive build
+          ./bin/catalog_check ../../../sitefetch/share/sitefetch/messages.catalog \
+            --verbatim=sitefetch,--help,--version,--quiet,--verbose,--locale,--jsonl \
+            --locale-only=meta.
   macos-build-check:
     name: macOS native build check
     # macos-latest is arm64; gnat_native=15.2.1 ships no aarch64-darwin binary.
