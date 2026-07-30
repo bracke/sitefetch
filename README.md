@@ -343,6 +343,11 @@ reviewed translations intact and adds provisional translations for the remaining
 Modern language IDs, marked with `meta.provisional = "true"`. Parent-locale and English fallback
 still apply when a key is missing.
 
+One CLDR Modern identifier has no entries of its own: `chr` (Cherokee), which is served by the
+English fallback. A locale whose every string is English is not a translation, and carrying one
+would claim coverage the catalog does not have. `--locale chr` behaves exactly as it did when the
+entries were present. Entries added by a speaker would restore it with no other change.
+
 A provisional locale is machine-translated and has not been read by a speaker of the language.
 Twenty-three locales carry no `meta.provisional` marker -- `en` and the twenty-two that were
 translated and reviewed -- and those are the only ones the marker vouches for. Corrections from
